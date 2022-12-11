@@ -6,6 +6,7 @@ use DTApi\Models\Job;
 use DTApi\Http\Requests;
 use DTApi\Models\Distance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use DTApi\Repository\BookingRepository;
 
 /**
@@ -35,12 +36,14 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        if($user_id = $request->get('user_id')) {
+        $auth_user_id = Auth::id(); // In this way we only need to call the method once and not repeat it inside the function.
 
-            $response = $this->repository->getUsersJobs($user_id);
+        if($auth_user_id) { 
 
-        }
-        elseif($request->__authenticatedUser->user_type == env('ADMIN_ROLE_ID') || $request->__authenticatedUser->user_type == env('SUPERADMIN_ROLE_ID'))
+            $response = $this->repository->getUsersJobs($user_id); 
+
+        } 
+        elseif($auth_user_id == env('ADMIN_ROLE_ID') || $auth_user_id == env('SUPERADMIN_ROLE_ID'))
         {
             $response = $this->repository->getAll($request);
         }
@@ -67,7 +70,7 @@ class BookingController extends Controller
     {
         $data = $request->all();
 
-        $response = $this->repository->store($request->__authenticatedUser, $data);
+        $response = $this->repository->store($request->user(), $data);
 
         return response($response);
 
@@ -81,7 +84,7 @@ class BookingController extends Controller
     public function update($id, Request $request)
     {
         $data = $request->all();
-        $cuser = $request->__authenticatedUser;
+        $cuser = $request->user();
         $response = $this->repository->updateJob($id, array_except($data, ['_token', 'submit']), $cuser);
 
         return response($response);
@@ -123,7 +126,7 @@ class BookingController extends Controller
     public function acceptJob(Request $request)
     {
         $data = $request->all();
-        $user = $request->__authenticatedUser;
+        $user = $request->user();
 
         $response = $this->repository->acceptJob($data, $user);
 
@@ -133,7 +136,7 @@ class BookingController extends Controller
     public function acceptJobWithId(Request $request)
     {
         $data = $request->get('job_id');
-        $user = $request->__authenticatedUser;
+        $user = $request->user();
 
         $response = $this->repository->acceptJobWithId($data, $user);
 
@@ -147,7 +150,7 @@ class BookingController extends Controller
     public function cancelJob(Request $request)
     {
         $data = $request->all();
-        $user = $request->__authenticatedUser;
+        $user = $request->user();
 
         $response = $this->repository->cancelJobAjax($data, $user);
 
@@ -185,7 +188,7 @@ class BookingController extends Controller
     public function getPotentialJobs(Request $request)
     {
         $data = $request->all();
-        $user = $request->__authenticatedUser;
+        $user = $request->user();
 
         $response = $this->repository->getPotentialJobs($user);
 
@@ -196,28 +199,28 @@ class BookingController extends Controller
     {
         $data = $request->all();
 
-        if (isset($data['distance']) && $data['distance'] != "") {
+        //IF STATEMENT PROB
+        //No need to use 2 statements inside IF
+        //We already use isset() function so it will already check if the $data['distance'] is set with any type of data, if so it will send the value to $distance even if the value is equal to ' "" '
+        //So we can actaully dispose of the second statement  ( $data['distance'] != "" ) and the else statement ( $distance = "").
+        if (isset($data['distance'])) {
             $distance = $data['distance'];
-        } else {
-            $distance = "";
         }
-        if (isset($data['time']) && $data['time'] != "") {
+        if (isset($data['time'])) {
             $time = $data['time'];
-        } else {
-            $time = "";
         }
-        if (isset($data['jobid']) && $data['jobid'] != "") {
+        if (isset($data['jobid'])) {
             $jobid = $data['jobid'];
         }
-
-        if (isset($data['session_time']) && $data['session_time'] != "") {
+        if (isset($data['session_time'])) {
             $session = $data['session_time'];
-        } else {
-            $session = "";
         }
-
+        //RETURN
+        //here I didn't like to see the return on the side of the statement but that's only because I am picky
         if ($data['flagged'] == 'true') {
-            if($data['admincomment'] == '') return "Please, add comment";
+            if($data['admincomment'] == '') {
+                return "Please, add comment";
+            }
             $flagged = 'yes';
         } else {
             $flagged = 'no';
@@ -235,7 +238,7 @@ class BookingController extends Controller
             $by_admin = 'no';
         }
 
-        if (isset($data['admincomment']) && $data['admincomment'] != "") {
+        if (isset($data['admincomment'])) {
             $admincomment = $data['admincomment'];
         } else {
             $admincomment = "";
