@@ -125,53 +125,54 @@ class BookingRepository extends BaseRepository
      * @param $data
      * @return mixed
      */
+
+    public function store_error_handling($status, $message, $field_name)
+    {
+        $response['status'] = $status;
+        $response['message'] = $message;
+        $response['field_name'] = $field_name;
+        return $response;
+    }
+
     public function store($user, $data)
     {
-
+            
         $immediatetime = 5;
         $consumer_type = $user->userMeta->consumer_type;
         if ($user->user_type == env('CUSTOMER_ROLE_ID')) {
             $cuser = $user;
 
+            //CODE BLOCKS
+            //Too much code doing the same things, it's better to creat a function and spare time, also makes the code look cleaner
             if (!isset($data['from_language_id'])) {
-                $response['status'] = 'fail';
-                $response['message'] = "Du måste fylla in alla fält";
-                $response['field_name'] = "from_language_id";
+                $response = $this->store_error_handling('fail', "Du måste fylla in alla fält", "from_language_id" );
                 return $response;
             }
             if ($data['immediate'] == 'no') {
                 if (isset($data['due_date']) && $data['due_date'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "due_date";
+                    $response = $this->store_error_handling('fail',"Du måste fylla in alla fält", "due_date");
                     return $response;
                 }
                 if (isset($data['due_time']) && $data['due_time'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "due_time";
+                    $response = $this->store_error_handling('fail',"Du måste fylla in alla fält", "due_time");
                     return $response;
                 }
-                if (!isset($data['customer_phone_type']) && !isset($data['customer_physical_type'])) {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste göra ett val här";
-                    $response['field_name'] = "customer_phone_type";
+                //No need to use 2 isset() function, we can simply add the 2 conditions one time
+                if (!isset($data['customer_phone_type'], $data['customer_physical_type'])) {
+                    $response = $this->store_error_handling('fail',"Du måste göra ett val här", "customer_phone_type");
                     return $response;
                 }
                 if (isset($data['duration']) && $data['duration'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "duration";
+                    $response = $this->store_error_handling('fail',"Du måste fylla in alla fält", "duration");
                     return $response;
                 }
             } else {
                 if (isset($data['duration']) && $data['duration'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "duration";
+                    $response = $this->store_error_handling('fail',"Du måste fylla in alla fält", "duration");
                     return $response;
                 }
             }
+
             if (isset($data['customer_phone_type'])) {
                 $data['customer_phone_type'] = 'yes';
             } else {
@@ -246,6 +247,8 @@ class BookingRepository extends BaseRepository
             $response['status'] = 'success';
             $response['id'] = $job->id;
             $data['job_for'] = array();
+
+            //GOOD ONE
             if ($job->gender != null) {
                 if ($job->gender == 'male') {
                     $data['job_for'][] = 'Man';
@@ -263,6 +266,7 @@ class BookingRepository extends BaseRepository
                     $data['job_for'][] = $job->certified;
                 }
             }
+            //END OF GOOD ONE
 
             $data['customer_town'] = $cuser->userMeta->city;
             $data['customer_type'] = $cuser->userMeta->customer_type;
@@ -290,7 +294,7 @@ class BookingRepository extends BaseRepository
         $job->user_email = @$data['user_email'];
         $job->reference = isset($data['reference']) ? $data['reference'] : '';
         $user = $job->user()->get()->first();
-        if (isset($data['address'])) {
+        if (isset($data['address'])) {          // Really liked this here 
             $job->address = ($data['address'] != '') ? $data['address'] : $user->userMeta->address;
             $job->instructions = ($data['instructions'] != '') ? $data['instructions'] : $user->userMeta->instructions;
             $job->town = ($data['town'] != '') ? $data['town'] : $user->userMeta->city;
@@ -549,6 +553,8 @@ class BookingRepository extends BaseRepository
 
         $physicalJobMessageTemplate = trans('sms.physical_job', ['date' => $date, 'time' => $time, 'town' => $city, 'duration' => $duration, 'jobId' => $jobId]);
 
+
+        //BACK HERE
         // analyse weather it's phone or physical; if both = default to phone
         if ($job->customer_physical_type == 'yes' && $job->customer_phone_type == 'no') {
             // It's a physical job
@@ -596,8 +602,11 @@ class BookingRepository extends BaseRepository
     public function isNeedToSendPush($user_id)
     {
         $not_get_notification = TeHelper::getUsermeta($user_id, 'not_get_notification');
-        if ($not_get_notification == 'yes') return false;
-        return true;
+        if ($not_get_notification == 'yes') {
+            return false;
+        }else{
+            return true;
+        }
     }
 
     /**
@@ -702,7 +711,8 @@ class BookingRepository extends BaseRepository
             {
                 $translator_level[] = 'Certified with specialisation in health care';
             }
-            else if ($job->certified == 'normal' || $job->certified == 'both') {
+            //elseif should be formatted the same way as the others
+            elseif ($job->certified == 'normal' || $job->certified == 'both') {
                 $translator_level[] = 'Layman';
                 $translator_level[] = 'Read Translation courses';
             }
@@ -899,7 +909,7 @@ class BookingRepository extends BaseRepository
         $job->save();
         return true;
 //        }
-        return false;
+        //return false; --> return false out of context
     }
 
     /**
@@ -954,7 +964,7 @@ class BookingRepository extends BaseRepository
         $job->save();
         return true;
 //        }
-        return false;
+        //return false; --> return false out of context
     }
 
     /**
@@ -1305,10 +1315,13 @@ class BookingRepository extends BaseRepository
         $data['due_date'] = $due_date;
         $data['due_time'] = $due_time;
         $data['job_for'] = array();
+        //here I have some wonders, I believe the app is setted to only 2 options, 
+        //if that's the case then there is no need for the "else if" condition, we can only set it as "else"
+        //I will still remove it since there is no options to leave it null or to switch to another gender
         if ($job->gender != null) {
             if ($job->gender == 'male') {
                 $data['job_for'][] = 'Man';
-            } else if ($job->gender == 'female') {
+            } else {
                 $data['job_for'][] = 'Kvinna';
             }
         }
